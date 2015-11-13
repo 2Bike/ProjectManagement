@@ -39,6 +39,7 @@ struct binary_tree{
 
 binary_tree* init_bt();
 node *findMax(node* root);
+node *findMin(node* root);
 node* bt_search(char *query, node *root);
 node* create_btree();
 void print_node(node* n);
@@ -53,22 +54,23 @@ void read_db_to_tree1(binary_tree *);
 void read_db_to_tree2(binary_tree *);
 void print_preorder(node* bt);
 
-int grade(){
+int main(){
     binary_tree *tree = init_bt();
     read_db_to_tree2(tree);
     node* tmp;
+    node* tmp2;
     char buffer[50];
     float fbuff;
     int cmd;
+    FILE *f;
 
     while(1){
-        printf("########################\n");
-        printf("# 1. Print In-Order    #\n");
-        printf("# 2. Search            #\n");
-        printf("# 3. Modify            #\n");
-        printf("# 4. Delete            #\n");
-        printf("# 5. Exit              #\n");
-        printf("########################\n");
+        printf("##############################################\n");
+        printf("# 1. Print In-Order                          #\n");
+        printf("# 2. Print Student(s) With Maximum Grade     #\n");
+        printf("# 3. Print Student(s) With Minimum Grade     #\n");
+        printf("# 4. Exit                                    #\n");
+        printf("##############################################\n");
         printf("Enter your choice: ");
         scanf("%d",&cmd);
         switch (cmd){
@@ -76,39 +78,38 @@ int grade(){
                 inorder(tree->root);
                 break;
             case 2:
-                printf("Enter IDENTITY NUMBER: ");
-                scanf("%s",&buffer);
-                tmp = bt_search(buffer, tree->root);
+                tmp = findMax(tree->root);
                 if (tmp != NULL) {
-                    printf("\nResult: ");
+                    printf("\nResults:\n\n");
                     print_node(tmp);
+
+                    while (tmp->data->avg_grade == tmp->parent->data->avg_grade){
+                        tmp2 = tmp->parent;
+                        print_node(tmp2);
+                        tmp = tmp2;
+                    }
+
                     printf("\n");
                 }
                 break;
             case 3:
-                printf("Enter IDENTITY: ");
-                scanf("%s", &buffer);
-                tmp = bt_search(buffer, tree->root);
-                if (tmp != NULL){
-                    printf("Enter Name: ");
-                    scanf("%s",&buffer);
-                    strcpy(tmp->data->name, buffer);
-                    printf("Enter Sirname: ");
-                    scanf("%s",&buffer);
-                    strcpy(tmp->data->sirname, buffer);
-                    printf("Enter Average Grade: ");
-                    scanf("%f",&fbuff);
-                    tmp->data->avg_grade = fbuff;
+                tmp = findMin(tree->root);
+                if (tmp != NULL) {
+                    printf("\nResults:\n\n");
+                    print_node(tmp);
+
+                    while (tmp->data->avg_grade == tmp->parent->data->avg_grade){
+                        tmp2 = tmp->parent;
+                        print_node(tmp2);
+                        tmp = tmp2;
+                    }
+                    printf("\n");
                 }
-                fflush(stdin);
                 break;
             case 4:
-                printf("Enter IDENTITY: ");
-                scanf("%s",&buffer);
-                delete_element(buffer, tree->root);
-                break;
-
-            case 5:
+                // Clear the previous database file
+                f = fopen("student_database.txt", "w");
+                fclose(f);
                 print_preorder(tree->root);
                 return 0;
             default:
@@ -173,7 +174,7 @@ void add_node2(char *identity, char *name, char *sirname,
     leaf->data = (node_data*)malloc(sizeof(node_data));
     strcpy(leaf->data->identity, identity);
     strcpy(leaf->data->name, name);
-    strcpy(leaf->data->name, sirname);
+    strcpy(leaf->data->sirname, sirname);
     leaf->data->avg_grade = avg_grade;
 
     if (bt->root == NULL){
@@ -182,6 +183,7 @@ void add_node2(char *identity, char *name, char *sirname,
     }
     else add2(leaf, bt->root);
 }
+
 //Add Node to Binary Tree (Code Side)
 void add1(node* leaf, node* root){
 
@@ -214,7 +216,7 @@ void add1(node* leaf, node* root){
 void add2(node* leaf, node* root){
 
 
-    if (leaf->data->avg_grade <= root->data->avg_grade){
+    if (leaf->data->avg_grade < root->data->avg_grade){
 
         if (root->left == NULL){
             root->left = leaf;
@@ -238,6 +240,7 @@ void add2(node* leaf, node* root){
     }
 
 }
+
 //Search in the binary tree
 node* bt_search(char *query, node *root){
     if (root == NULL){
@@ -312,8 +315,24 @@ node *findMax(node* root){
     if (root == NULL){
         return NULL;
     }
-    if (root->right == NULL){
+    else if (root->right == NULL){
         return root;
+    }
+    else {
+        findMax(root->right);
+    }
+}
+
+//Find Min Value(ID) in Binary Tree
+node *findMin(node* root){
+    if (root == NULL){
+        return NULL;
+    }
+    else if (root->left == NULL){
+        return root;
+    }
+    else {
+        findMin(root->left);
     }
 }
 
@@ -328,9 +347,10 @@ void overwrite(node* A, node* B){
 //Full print of the node
 void print_node(node* n)
 {
-    /*printf("%s -- %s -- %s -- %f\n", n->data->identity, n->data->name, n->data->sirname, n->data->avg_grade);*/
-    printf("%f\n", n->data->avg_grade);
+    printf("%s -- %s -- %s -- %.2f\n", n->data->identity, n->data->name, n->data->sirname, n->data->avg_grade);
+    //printf("%f\n", n->data->avg_grade);
 }
+
 //Read text database to in-memory binary tree
 void read_db_to_tree1(binary_tree* tree){
     FILE *fh;
@@ -375,7 +395,7 @@ void read_db_to_tree2(binary_tree* tree){
     int i;
     while(fgets(buffer, line_size, fh)!=NULL){
         identity = strtok(buffer," ");
-        printf("%s\n", identity);
+        //printf("%s\n", identity);
         name = strtok(NULL," ");
         sirname = strtok(NULL," ");
         avg_grade = atof(strtok(NULL, " "));
@@ -390,12 +410,11 @@ void print_preorder(node* bt )
     {
         return;
     }
-FILE *fo = fopen("student_database.txt", "a+" );
+    FILE *fo = fopen("student_database.txt", "a+" );
 
-fprintf(fo, "%s -- %s -- %f -- %d -- %f\n",
-        bt->data->identity, bt->data->name,
-        bt->data->sirname, bt->data->avg_grade);
+    fprintf(fo, "%s %s %s %.2f\n", bt->data->identity, bt->data->name, bt->data->sirname, bt->data->avg_grade);
     print_preorder(bt->left);
     print_preorder(bt->right);
+    fclose(fo);
 }
 
